@@ -1,0 +1,119 @@
+<?php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Session;
+use Storage;
+use App\Helpers\AppHelper;
+use App\Models\Product;
+use Illuminate\Support\Str;
+
+class ShopifyController extends Controller
+{
+    public function index() {
+//        echo date('c');
+//        $shop = ShopifyApp::shop();
+//        $response = $shop->api()->rest(
+//                'GET', 
+//                '/admin/api/2019-10/products.json',
+//                [
+//                    'fields' => 'id,image,title,vendor,created_at',
+//                    'created_at_min' => date('Y-m-d')
+//                ]
+//        );
+//        echo '<pre>';
+//        print_r($response);
+//        die;
+//        $products = [];
+//        if(!empty($response->body) && isset($response->body->products)) {
+//            $products = $response->body->products;
+//        }
+        $productsModal = Product::where('created_at', '>=', date('Y-m-d'))->orderBy('report_no', 'asc');
+        $total_products = $productsModal->count();
+        $products = $productsModal->paginate(20);
+        return view("welcome", compact('total_products', 'products'));
+    }
+    
+    public function import_csv(Request $request) {
+        if($request->method() == 'POST') {
+            if ($request->hasFile('csv_file') && $request->file('csv_file')->isValid()) {
+                try {
+                    if ($request->file('csv_file')->getClientMimeType() == 'application/vnd.ms-excel' || $request->file('csv_file')->extension() == 'txt') {
+                        $filename = $request->file('csv_file')->getClientOriginalName();
+                        $path = $request->file('csv_file')->getRealPath();
+
+                        $result = AppHelper::parse_csv($filename, $path, $request->has('header'));
+                        if (!$result) {
+                            return redirect()->back();
+                        } else {
+                            Session::flash('flash_success', $result);
+                        }
+                    } else {
+                        Session::flash('flash_error', 'Invalid file uploaded!');
+                    }
+                    
+                } catch (\Exception $e) {
+                    Session::flash('flash_error', 'Something went wrong!');
+                } catch (\Throwable $e) {
+                    Session::flash('flash_error', 'Something went wrong!');
+                }                
+            } else {
+                Session::flash('flash_error', 'Invalid file uploaded!');
+            }            
+        }
+        
+        return view("import_csv");
+    }
+    
+    public function ftp_import() {
+//        return view('ftp_import');
+        $view = view('ftp_import');
+        echo $view->render();
+        echo str_repeat(' ', 1024 * 8);
+        ob_flush();
+        
+        try {
+            $files = Storage::disk('public')->allFiles();
+            
+            foreach ($files as $file) {
+                $filename   = basename($file);
+                $time       = Storage::disk('public')->lastModified($file);
+                $result     = Str::endsWith(strtolower($filename), 'csv');
+                
+                if($result && $time >= strtotime(date('Y-m-d'))) {
+                    echo '<script language="javascript">
+                        document.getElementById("filename").innerHTML = "' . $file . '";
+                    </script>';
+                    echo str_repeat(' ', 1024 * 8);
+                    ob_flush();
+                    
+                    $path = Storage::disk('public')->path($file);
+                    AppHelper::parse_csv($filename, $path);
+                }                
+            }
+            echo '<script language="javascript">
+                document.getElementById("action").innerHTML="Import Completed!";
+                document.getElementById("result").innerHTML="All files are successfully imported.";
+                clearInterval(timer);
+                document.getElementById("loader").remove();
+                document.getElementById("filename").remove();
+            </script>';
+        } catch (\Exception $e) {
+            echo '<script language="javascript">
+                document.getElementById("action").innerHTML="Import Stopped!";
+                document.getElementById("result").innerHTML="Error: '. $e->getMessage() .'";
+                clearInterval(timer);
+            </script>';
+        } catch (\Throwable $e) {
+            echo '<script language="javascript">
+                document.getElementById("action").innerHTML="Import Stopped!";
+                document.getElementById("result").innerHTML="Error: '. $e->getMessage() .'";
+                clearInterval(timer);
+            </script>';
+        }
+        echo str_repeat(' ', 1024 * 8);
+        ob_flush();
+        ob_end_flush();
+        die;
+    }
+}

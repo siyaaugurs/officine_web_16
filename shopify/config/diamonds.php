@@ -1,0 +1,33 @@
+<?php
+
+return [
+    'abbreviation' => [
+        'G'     => 'Good',
+        'GD'    => 'Good',
+        'VG'    => 'Very Good',
+        'EX'    => 'Excellent',
+        'ID'    => 'Ideal',
+        'NONE'  => 'None',
+        'FAINT' => 'Faint',
+        'N'     => 'None',
+        'F'     => 'Faint',
+        'RD'    => 'Round',
+        'CU'    => 'Cushion',
+        'OV'    => 'Oval',
+        'PR'    => 'Princess',
+        'EM'    => 'Emerald',
+        'PE'    => 'Pear',
+        'MA'    => 'Marquise',
+        'AS'    => 'Asscher',
+        'RA'    => 'Radiant',
+        'HE'    => 'Heart',
+    ],
+    'clarities' => ['FL','IF','VVS1','VVS2','VS1','VS2','SI1'],
+    'colors' => ['D','E','F','G','H'],
+    'cut' => ['ID','EX','VG'],
+    'fluorescences' => ['FAINT','NONE'],
+    'labs' => ['AGS','BSC','GCAL','GIA','HRD','IGI'],
+    'polish' => ['EX','VG'],
+    'symmetry' => ['EX','VG'],
+    'shapes' => ['ROUND','CUSHION','OVAL','PRINCESS','EMERALD','PEAR','MARQUISE','ASSCHER','RADIANT','HEART'],
+];

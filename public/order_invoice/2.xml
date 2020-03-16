@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<WebOrders><WebOrder>
+                    <DocDate>194</DocDate>
+                    <Anag>
+                        <Name>angelo prova</Name>
+                        <Address>Via Emilia per Cesena, 3, 47034 Forlimpopoli FC, Italia</Address>
+                        <ZipCode>208027</ZipCode>
+                        <City></City>
+                        <Province></Province>
+                        <CountryCode>IT</CountryCode>
+                        <EmailAddress>cc1321en@gmail.com</EmailAddress>
+                        <PhoneNumber>3386450233</PhoneNumber>
+                        <CellularNumber>3386450233</CellularNumber>
+                        <FaxNumber></FaxNumber>
+                        <VatNumber></VatNumber>
+                        <PersonalID>194</PersonalID>
+                        <LanguageRFC>en-gb</LanguageRFC>
+                        <EInvoiceAddress>ABC1234</EInvoiceAddress>
+                      </Anag>
+                      <DestinationAddress>
+                        <Name1>Bhavna Sriv</Name1>
+                        <Address1>gomati nagar</Address1>
+                        <ZipCode>208027</ZipCode>
+                        <City></City>
+                        <Province></Province>
+                        <CountryCode></CountryCode>
+                      </DestinationAddress>
+                      <Payment>
+                        <Code></Code>
+                        <Name>online</Name>
+                      </Payment></WebOrder></WebOrders>
+                </urlset>

@@ -1,0 +1,187 @@
+<?php
+/**
+* Class AppHelper | app/Helpers/AppHelper.php
+*
+* @package     ShopifyApp\Helpers
+*/
+
+namespace App\Helpers;
+
+use DB;
+use Storage;
+use App\CsvFiles;
+use App\CsvData;
+use OhMyBrew\ShopifyApp\Facades\ShopifyApp;
+
+/**
+* AppHelper
+*
+* This class contains common functions which can be used anywhere in the project scope.
+* 
+* @author      
+* @version     v.1.0
+* @copyright   Copyright © 2019 D-Law. All rights reserved.
+*/
+class AppHelper
+{
+    /**
+     * Create a new AppHelper instance.
+     *
+     * @return void
+     */
+    public static function instance()
+    {
+        return new AppHelper();
+    }
+    
+    public static function parse_csv($filename, $path, $header=TRUE) 
+    {
+        $data = array_map('str_getcsv', file($path));
+        if (count($data) > 0) {
+            $csv_file = CsvFiles::create([
+                'csv_filename' => $filename,
+                'csv_header' => $header,
+                'csv_data' => json_encode($data)
+            ]);
+            if($csv_file->id) {
+                $rows = self::csv_to_array($path, $header);
+                //echo '<pre>';
+                //print_r($rows);
+                //die;
+                $recordUpdated = $recordInserted = 0;
+                $shop = ShopifyApp::shop();
+                foreach ($rows as $row) {
+                    $row['csv_file_id'] = $csv_file->id;
+                    $csvData = CsvData::updateOrCreate(
+                        ['report_no' => $row['report_no']],
+                        $row
+                    );
+                    if ($csvData->wasRecentlyCreated) {                        
+                        $recordInserted++;
+                    } else {
+//                        print_r($row['report_no']);
+//                        echo '<br>';
+                        $recordUpdated++;
+                    }
+                    self::create_product($shop, $csvData);
+//                    break;
+                }
+                
+                $datetime = date('d/m/Y h:i A');
+                $result = "Uploading result for the uploaded file: <b>{$filename}</b><br><br>Time: {$datetime}<br>";
+                $result .= "<br>";
+                if ($recordInserted) {
+                    $result .= "Added Records: {$recordInserted}<br>";
+                }
+                if ($recordUpdated) {
+                    $result .= "Updated Records: {$recordUpdated}<br>";
+                }
+                return $result;
+            }
+        }
+        return FALSE;
+    }
+
+    private static function csv_to_array($filename='', $hasHeader=FALSE, $delimiter=',')
+    {
+        if(!file_exists($filename) || !is_readable($filename)) {
+            return FALSE;
+        }
+        $header = array();
+        $data = array();
+        if (($handle = fopen($filename, 'r')) !== FALSE)
+        {
+            while (($row = fgetcsv($handle, 1000, $delimiter)) !== FALSE)
+            {
+                if($hasHeader && empty($header)) {
+                    $header = self::mutate_csv_header_title($row);
+                } elseif(!$hasHeader) {
+                    $row = self::escape_cell_values($row);
+                    $data[] = $row;
+                } else {
+                    $row = self::escape_cell_values($row);
+                    $data[] = array_combine($header, $row);
+                }
+            }
+            fclose($handle);
+        }
+        return $data;
+    }
+    
+    private static function mutate_csv_header_title($row) {
+        array_walk($row, function(&$key) {
+            $key = str_slug(str_ireplace('%', 'percentage', trim($key)), '_');
+        });
+        return $row;
+    }
+    
+    private static function escape_cell_values($row) {
+        array_walk($row, function(&$key) {
+            $key = trim($key);
+        });
+        return $row;
+    }
+    
+    private static function create_product($shop, $csvData) {        
+        if(!$csvData->published) {
+            $apikey     = config('shopify-papp.apikey');
+            $password   = config('shopify-papp.password');
+            $hostname   = config('shopify-papp.hostname');
+            $version    = config('shopify-papp.api_version');
+            
+            $client = new \GuzzleHttp\Client();
+            $response = $client->request(
+                    'POST', 
+                    "https://{$apikey}:{$password}@{$hostname}/admin/api/{$version}/products.json", 
+                    [
+                        'json' => [
+                            'product' => [
+                                'title'             => $csvData->product_title,
+                                'body_html'         => !empty($csvData->video_link) ? '<iframe src="' . $csvData->video_link . '" style="top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 500px; border: none; margin: 0; padding: 0; overflow: hidden;"></iframe>' : '',
+                                'vendor'            => 'Pure Carats',
+                                'product_type'      => 'Diamond',
+                                'published_scope'   => 'global',
+                                'variants'      => [
+                                    [
+                                        'price'     => $csvData->rap_price,
+                                        'sku'       => $csvData->report_no,
+                                        'inventory_management' => 'shopify',
+                                        'inventory_quantity' => 1
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+            );
+            $body = json_decode($response->getBody()->getContents());
+            /*$response = $shop->api()->rest(
+                    'POST', 
+                    '/admin/api/2020-01/products.json',
+                    [
+                        'product' => [
+                            'title'         => $csvData->product_title,
+                            'body_html'     => '<iframe src="' . $csvData->video_link . '" style="top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 500px; border: none; margin: 0; padding: 0; overflow: hidden;"></iframe>',
+                            'vendor'        => 'Pure Carats',
+                            'product_type'  => 'Diamond',
+                            'published_scope' => 'global',
+                            'variants'      => [
+                                [
+                                    'price'     => $csvData->rap_price,
+                                    'sku'       => $csvData->report_no,
+                                    'inventory_management' => 'shopify',
+                                    'inventory_quantity' => 1
+                                ]                            
+                            ]
+                        ]
+                    ]
+            );
+            $body = $response->body;*/
+            if(isset($body->product)) {
+                CsvData::where('id', $csvData->id)->update([
+                    'published'     => 1,
+                    'product_id'    => $body->product->id
+                ]);
+            }            
+        }        
+    }
+}
