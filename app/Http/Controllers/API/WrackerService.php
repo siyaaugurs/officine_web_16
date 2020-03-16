@@ -628,9 +628,15 @@ public function sos_workshop_list_for_emergency(Request $request){
 									/*End*/
 									$new_generate_applicable_slot = sHelper::get_time_slot($not_applicable_hour_arr, $opening_slot);
 									  /*Get Booked time slots*/
-									  $booked_list = \App\ServiceBooking::where([['workshop_user_day_timings_id' , '=' , $slot->id] , ['workshop_user_id','=',(int) $request->workshop_id] ,
-																				['type' , '=' , 6] ,['wrecker_service_type' , '=' ,2] ,['services_id' , '=' ,$request->service_id]])
-																		  ->whereDate('booking_date' , $request->selected_date)->get();
+									 // $booked_list = \App\ServiceBooking::where([['workshop_user_day_timings_id' , '=' , $slot->id] , ['workshop_user_id','=',(int) $request->workshop_id] ,
+										//										['type' , '=' , 6] ,['wrecker_service_type' , '=' ,2] ,['services_id' , '=' ,$request->service_id]])
+										//								  ->whereDate('booking_date' , $request->selected_date)->get();
+									$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' ,(int)$request->workshop_id] , ['wrecker_service_type' , '=' ,2] , ['services_id' ,'=' , $request->service_id] ,['type' ,'=' , 6] ,['status' ,'=' ,'C']]);
+										$query->whereDate('booking_date', $request->selected_date);
+										if(!empty($request->user_id)){
+											$query->orWhere([['users_id' , '=' , $request->user_id] ,['type' , '=' , 6]])->WhereIn('status' ,['CA' ,'P'])->whereDate('booking_date' , $request->selected_date);
+										}
+									 	$booked_list =	$query->get();
 										$new_booked_arr = $booked_slot = [];
 										if($booked_list->count() > 0){
 											foreach($booked_list as $booked){
@@ -927,7 +933,7 @@ public function sos_workshop_list_for_emergency(Request $request){
 								$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' ,(int)$request->workshop_id] , ['services_id' ,'=' , $request->service_id] ,['type' ,'=' , 6] ,['status' ,'=' , 'C']]);
 								$query->whereDate('booking_date', $request->selected_date);
                                 if(!empty($request->user_id)){
-                                    $query->orWhere([['users_id' , '=' , $request->user_id] ,['status' ,'=', 'P'], ['status' ,'=' ,'CA'] ,['type' , '=' , 6]])->where('booking_date' ,'=' , $request->selected_date);
+                                    $query->orWhere([['users_id' , '=' , $request->user_id],['type' , '=' , 6]])->whereIn('status',['CA' ,'P'])->wheredate('booking_date' , $request->selected_date);
                                 }
 									        $booked_list =	$query->get();
 											if ($booked_list->count() > 0) {
@@ -986,13 +992,9 @@ public function sos_workshop_list_for_emergency(Request $request){
 		   else{
 			return sHelper::get_respFormat(0, "Workshop is not correct !!! ", null, null);
 		   }
-			}
-			else{
+			} else {
 				return sHelper::get_respFormat(0, "Service is not correct !!! ", null, null);
 			}
        }		
 	/*End */
-		
-	/*End*/
-    
 }

@@ -615,9 +615,11 @@ class Tyre24Controller extends Controller{
 																		['type' , '=' , 4],['services_id' , '=' ,$request->service_id] , ['status' , '=' , 'C']]);
 																	    $query->whereDate('booking_date' , $request->selected_date);
 																		if(!empty($request->user_id)){
-																			$query->orWhere([['users_id' , '=' ,$request->user_id] , ['status' , '=' ,'P'] , ['status' , '=' , 'CA'] , ['type' , '=' , 4]])->whereDate('booking_date' , $request->selected_date);
+																			$query->orWhere([['users_id','=',$request->user_id] , ['type' , '=' , 4]])
+																			->whereIn('status',['CA' , 'P'])
+																			->whereDate('booking_date' , $request->selected_date);
 																		} 	
-									$booked_list = $query->get();  
+									$booked_list = $query->get(); 
 									if($booked_list->count() > 0) {
 										foreach($booked_list as $booked) {
 											$new_booked_list_slot[] = [$booked->start_time, $booked->end_time];
@@ -843,7 +845,7 @@ class Tyre24Controller extends Controller{
 																				  'service_booking_id'=>$save_response->id
 																			   ];
 													   //$save_product_response =  DB::table('products_order_descriptions')->insert($save_product_response);
-													   $save_product_response =  \App\Products_order_description::updateOrCreate(['products_id' => $request->products_id, 'users_id' => Auth::user()->id, 'products_orders_id' => (int) $user_last_order->id, 'for_order_type' => 2, 'for_assemble_service' => 1],$save_product_response);
+													   $save_product_response =  \App\Products_order_description::create(/*[ 'products_id' => $request->products_id, 'users_id' => Auth::user()->id, 'products_orders_id' => (int) $user_last_order->id, 'for_order_type' => 2, 'for_assemble_service' => 1,  'service_booking_id' => $save_response->id]*/$save_product_response);
 													   if($save_product_response){
 															$user_last_order = \App\Products_order::save_order($request , $product_discount , $request->product_total_price , NULL , $after_discount_product_price);
 														   return ['status'=>200 , 'response'=>$save_response];
