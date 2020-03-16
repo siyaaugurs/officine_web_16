@@ -615,7 +615,9 @@ class Tyre24Controller extends Controller{
 																		['type' , '=' , 4],['services_id' , '=' ,$request->service_id] , ['status' , '=' , 'C']]);
 																	    $query->whereDate('booking_date' , $request->selected_date);
 																		if(!empty($request->user_id)){
-																			$query->orWhere([['users_id' , '=' ,$request->user_id] , ['status' , '=' ,'P'] , ['status' , '=' , 'CA'] , ['type' , '=' , 4]])->whereDate('booking_date' , $request->selected_date);
+																			$query->orWhere([['users_id' , '=' ,$request->user_id] , ['status' , '=' ,'P'] , ['type' , '=' , 4]])
+																			->orWhere([['status' , '=' ,'CA']])
+																			->whereDate('booking_date' , $request->selected_date);
 																		} 	
 									$booked_list = $query->get();  
 									if($booked_list->count() > 0) {
