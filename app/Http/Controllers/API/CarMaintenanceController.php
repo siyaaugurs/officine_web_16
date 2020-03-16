@@ -724,6 +724,10 @@ class CarMaintenanceController extends Controller {
 															   ['services_id' , '=' ,$service_id]])
 														->whereDate('booking_date' , $selected_date)->get();
 											$book_max_appointment = $booked_list->count();					
+											$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' , $workshop_id] ,['type' ,'=' ,5] ,['services_id' ,'=',$service_id] ,['status' ,'=' ,'C']])->whereDate('booking_date' ,$selected_date);
+											if($user_id != 0){
+												$query->orWhere([['users_id' ,'=' , $user_id] ,['type' ,'=' ,5]])->whereIn('status' , ['CA' ,'P'])->whereDate('booking_date' ,$selected_date);
+											}
 											if($booked_list->count() < $max_appointment){
 											if ($booked_list->count() > 0) {
 												foreach($booked_list as $booked) {
