@@ -379,10 +379,17 @@ class sHelper{
 		}
 		$new_generate_slots = sHelper::get_time_slot($not_aplicable_slot, $opening_slot);
 		/*Get Booked slots*/
-		  $booked_slots = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
-														['type' , '=' , 5] ,
-														['services_id' , '=' ,$service_id]])
-												->whereDate('booking_date' , $request->selected_date)->get();
+		 // $booked_slots = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
+			//											['type' , '=' , 5] ,
+			//											['services_id' , '=' ,$service_id]])
+			//									->whereDate('booking_date' , $request->selected_date)->get();
+		$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' , (int) $workshop_id] ,['type' ,'=' , 5] ,['services_id' ,'=' ,$service_id] ,['status' ,'=' ,'C']]);
+		$query->whereDate('booking_date' ,$request->selected_date);	
+		if(!empty($request->user_id)){
+			$query->orWhere([['users_id' ,'=' ,$request->user_id] ,['type','=' , 5]])->whereIn('status' ,['CA' ,'P'])->whereDate('booking_date' , $request->selected_date);
+ 
+		}
+		$booked_slots = $query->get();
 		/*End*/
 	      if($booked_slots->count() > 0){
 			  foreach($booked_slots as $booked){
@@ -834,16 +841,55 @@ public static function workshop_time_slot($selected_date , $workshop_id){
 		  else{ $real_value = $value; }
 		 return $real_value; 
    }
-    
-    public static function get_product_image($id) {
-		$product_image =  \App\ProductsImage::where([['products_id' , '=' ,$id], ['deleted_at', '=', NULL]])->get();
-		// return $product_image;
-		 if($product_image->count() > 0) {
-			 return $product_image[0]['image_url'];
-		 } else {
-			 return url("storage/products_image/no_image.jpg");
-		 }
+	
+    public static function check_products_image_available_status($product){
+		$query =  \App\ProductsImage::where([['deleted_at', '=', NULL]]);
+			if($product->type == 1){
+				$query->where([['id' , '=' ,$product->id]])->orWhere([['CodiceArticolo' , '=' , (string) $product->CodiceArticolo] , ['ls_CodiceListino' , '=' , (string) $product->CodiceListino]]); 
+			}
+			if($product->type == 2){
+			$query->where([['products_id','=',$product->id]]); 
+			}
+		$product_image = $query->get();
+		if($product_image->count() > 0) {
+			foreach($product_image as $image){
+				if(file_exists("storage/products_image/$image->image_name")){
+					return 1;
+				}
+			}
+		} else {
+		   return 0;
+		}
 	}
+
+   public static function get_product_image($product) {
+	$query =  \App\ProductsImage::where([['deleted_at', '=', NULL]]);
+			   if($product->type == 1){
+				$query->where([['id' , '=' ,$product->id]])->orWhere([['CodiceArticolo' , '=' , (string) $product->CodiceArticolo] , ['ls_CodiceListino' , '=' , (string) $product->CodiceListino]]); 
+			    }
+			   if($product->type == 2){
+				  $query->where([['products_id','=',$product->id]]); 
+			   }
+	$product_image = $query->get();
+	if($product_image->count() > 0) {
+		$available = 0;
+		foreach($product_image as $image){
+			if(file_exists("storage/products_image/$image->image_name")){
+				$available = 1;
+				$image =  $image->image_url;
+			    break;
+			}
+		}
+		if($available == 1){
+            return $image;
+		}
+		else{
+			return url("storage/products_image/no_image.jpg");
+		}
+	 } else {
+		 return url("storage/products_image/no_image.jpg");
+	 }
+}
     
     
     public static function get_groups_item_by_groups($group_deatails  , $lang){
@@ -1863,12 +1909,18 @@ if($category != NULL){
 		}
 		$new_generate_slots = sHelper::get_time_slot($not_aplicable_slot, $opening_slot);
 		/*Get Booked slots*/
-		  $booked_slots = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
-														['type' , '=' , 6] ,
-														['wrecker_service_type' , '=' , 2] ,
-														['services_id' , '=' ,$request->service_id]])
-												->whereDate('booking_date' , $request->selected_date)->get();
-		/*End*/
+		 // $booked_slots = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
+			//											['type' , '=' , 6] ,
+			//											['wrecker_service_type' , '=' , 2] ,
+			//											['services_id' , '=' ,$request->service_id]])
+			//									->whereDate('booking_date' , $request->selected_date)->get();
+			$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' , (int)$request->workshop_id] ,['type' ,'=' ,6] ,['services_id' ,'=' ,$request->service_id] ,['status' ,'=', 'C']]);
+			$query->whereDate('booking_date', $request->selected_date);
+			if(!empty($request->user_id)){
+				$query->orWhere([['users_id' ,'=' ,$request->user_id] ,['type' ,'=' , 5]])->whereIn('status' ,['CA' ,'P'])->whereDate('booking_date' , $request->selected_date);
+			}
+			$booked_slots = $query->get();
+			/*End*/
 	      if($booked_slots->count() > 0){
 			  foreach($booked_slots as $booked){
 				  $new_booked_list[] = [$booked->start_time, $booked->end_time];
@@ -1912,10 +1964,10 @@ if($category != NULL){
 			$query = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
 											   ['type' , '=' , 6] ,
 											   ['wrecker_service_type' , '=' , 1] ,
-											   ['services_id' , '=' ,$request->service_id]]);
+											   ['services_id' , '=' ,$request->service_id] , ['status' ,'=' ,'C']]);
 			$query->whereDate('booking_date' , $request->selected_date);
 			if(!empty($request->user_id)){
-				$query->orWhere([['users_id' , '=' ,$request->user_id] , ['status' , '=' ,'P'], ['status', '=', 'CA'] , ['type' , '=' , 4]]);
+				$query->orWhere([['users_id' , '=' ,$request->user_id] , ['type' , '=' , 6]])->whereIn('status' ,'=' ,['CA' , 'P'])->whereDate('booking_date' ,$request->selected_date);
 			}
 			$booked_slots = $query->get();
 		/*End*/
@@ -1963,7 +2015,7 @@ if($category != NULL){
 											['type' , '=' , 4],['services_id' , '=' ,$request->service_id] , ['status' , '=' , 'C']]);
 		$query->whereDate('booking_date' , $request->selected_date);
 		if(!empty($request->user_id)){
-			$query->orWhere([['users_id' , '=' ,$request->user_id] , ['status' , '=' ,'P'], ['status', '=', 'CA'] , ['type' , '=' , 4]]);
+			$query->orWhere([['users_id' , '=' ,$request->user_id] , ['type' , '=' , 4]])->whereIn('status' , ['CA' ,'P'])->whereDate('booked_date' ,$request->selected_date);
 		}
 		$booked_list = $query->get();
 		if($booked_list->count() > 0){
@@ -2000,10 +2052,16 @@ if($category != NULL){
 		}
 		$new_generate_slots = sHelper::get_time_slot($not_aplicable_slot, $opening_slot);
 		/*Get Booked slots*/
-		  $booked_slots = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
-														['type' , '=' , 5] ,
-														['services_id' , '=' ,$service_id]])
-												->whereDate('booking_date' , $request->selected_date)->get();
+		  //$booked_slots = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
+				//										['type' , '=' , 5] ,
+				//										['services_id' , '=' ,$service_id]])
+					//							->whereDate('booking_date' , $request->selected_date)->get();
+		$query = \App\ServiceBooking::where([['workshop_user_id' ,'=',(int)$request->workshop_id] ,['type' ,'=' , 5] ,['services_id' ,'=' , $request->service_id]
+		,['status' ,'=' , 'C']])->whereDate('booking_date' , $request->selected_date);
+		if(!empty($request->user_id)){
+			$query->Orwhere([['users_id','=', $request->user_id] ,['type' ,'=' , 5]])->whereIn('status' ,['P' ,'CA'])->whereDate('booking_date' , $request->selected_date);
+		}
+		$booked_slots = $query->get();
 		/*End*/
 	      if($booked_slots->count() > 0){
 			  foreach($booked_slots as $booked){
@@ -2398,12 +2456,12 @@ if($category != NULL){
 	}
 
 	public static function calculate_pfu_price($products_orders_id){
-	 $get_product_data = \App\Products_order_description::where([['products_orders_id' , '=' ,$products_orders_id]])->get();
-	 $get_pfu =[];
-	 foreach($get_product_data as $get_product){
-		 $get_pfu[] = $get_product->pfu_tax;
-	 }
-		 return array_sum($get_pfu);
+		$get_product_data = \App\Products_order_description::where([['products_orders_id' , '=' ,$products_orders_id]])->get();
+		$get_pfu =[];
+		foreach($get_product_data as $get_product){
+			$get_pfu[] = $get_product->pfu_tax;
+		}
+		return array_sum($get_pfu);
 		//return $pfu_price = $total_price + 2.66;
 	}
 	  

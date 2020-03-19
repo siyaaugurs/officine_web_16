@@ -26,7 +26,14 @@ class ServiceBooking extends Model{
 
 	public static function add_booking($request , $package_details , $discount_price ,$special_id , $service_vat , $after_discount_price){
 	
-	 return ServiceBooking::create(['users_id'=>Auth::user()->id ,
+	 return ServiceBooking::updateOrCreate(
+		 [
+			'users_id'=>Auth::user()->id,
+			'product_order_id'=>(int) $request->order_id,
+			'workshop_user_id'=>$package_details->users_id,
+			'services_id'=>$request->category_id,
+		], 
+		['users_id'=>Auth::user()->id ,
 	 								'product_order_id'=>(int)$request->order_id,
 	                                'workshop_user_id'=>$package_details->users_id ,  
 									'services_id'=>$request->category_id , 
@@ -45,10 +52,8 @@ class ServiceBooking extends Model{
 									'service_vat'=>$service_vat,
 									'servicequotes_id' => $request->servicequotes_id,
 									'coupon_id'=>$request->coupon_id
-									]);
-
+		]);
 	}
-
 		/* tyre booking*/
 		public static function get_busy_hour_for_tyre($request , $package_details , $service_id){
 			return  ServiceBooking::where([['booking_date','=',$request->selected_date],
@@ -109,7 +114,11 @@ class ServiceBooking extends Model{
 	public static function add_booking_for_car_maintenance($request , $package_details, $service_specification ,$discount_price,$special_id, $service_vat , $after_discount_price){
 		//$part_ids = explode(' ' ,$service_specification->part_id);
 		//$part_id = json_encode($part_ids); 
-		return ServiceBooking::create(['users_id'=>Auth::user()->id ,
+		return ServiceBooking::updateOrCreate(['users_id' =>Auth::user()->id,
+											   'product_order_id' =>$request->order_id ,
+											   'workshop_user_id' =>$package_details->users_id,
+											   'services_id' =>$service_specification->service_id],
+									['users_id'=>Auth::user()->id ,
 									'product_order_id'=>(int)$request->order_id,
 	                                'workshop_user_id'=>$package_details->users_id ,  
 									'services_id'=>$service_specification->service_id , 
@@ -465,10 +474,17 @@ public static function get_busy_hour($request , $package_details){
 	/*End */
 
 	/*Add car revision service booking*/
-
-	public static function add_car_revision_service_booking($request , $package_details , $special_id,$discount_price,$service_vat , $after_discount_price){
+public static function add_car_revision_service_booking($request , $package_details , $special_id,$discount_price,$service_vat , $after_discount_price){
 		
-		return ServiceBooking::create(['users_id'=>Auth::user()->id ,
+		return ServiceBooking::updateOrCreate(
+		[
+			'users_id'=>Auth::user()->id,
+			'product_order_id'=>(int) $request->order_id,
+			'workshop_user_id'=>$package_details->users_id,
+			//'product_id'=>$request->products_id,
+			'services_id'=>$request->service_id,
+		],
+		['users_id'=>Auth::user()->id ,
 											'workshop_user_id'=>$package_details->users_id ,
 											'product_order_id'=>(int)$request->order_id,	
 											'services_id'=>$request->service_id,
@@ -487,7 +503,6 @@ public static function get_busy_hour($request , $package_details){
 									  	]);
 
 	}
-
 	/*End */
 
 	/*Get service booked car revisions */

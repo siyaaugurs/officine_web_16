@@ -114,7 +114,7 @@ class WrackerService extends Controller{
 								}
 								/*End*/
 								/*manage order id*/
-								$order_manage = \App\Products_order::save_order($request , $discount , $request->price);
+								$order_manage = \App\Products_order::save_order($request , 0 , 0);
 								if($order_manage){ $request->order_id = $order_manage->id; }
 							   /*End*/
 							   /*calculate vat*/
@@ -285,12 +285,12 @@ class WrackerService extends Controller{
 								  $get_busy_workshop = \App\ServiceBooking::get_busy_hour_for_sos_service($request , $get_package_details , $request->service_id);
 									if($get_busy_workshop->count() < 1){
 										/*Manage Order id*/
-										if(empty($request->order_id)){
-											$order_manage = \App\Products_order::save_order($request);
+										//if(empty($request->order_id)){
+											$order_manage = \App\Products_order::save_order($request , 0, 0, null ,0);
 											if($order_manage){
 												$request->order_id = $order_manage->id;
 											}
-										}
+										//}
 										/*End*/
 										$booking_result = \App\ServiceBooking::save_sos_booking($request , $get_package_details , $special_condition_arr);
 										if($booking_result){
@@ -634,7 +634,7 @@ public function sos_workshop_list_for_emergency(Request $request){
 									$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' ,(int)$request->workshop_id] , ['wrecker_service_type' , '=' ,2] , ['services_id' ,'=' , $request->service_id] ,['type' ,'=' , 6] ,['status' ,'=' ,'C']]);
 										$query->whereDate('booking_date', $request->selected_date);
 										if(!empty($request->user_id)){
-											$query->orWhere([['users_id' , '=' , $request->user_id] ,['type' , '=' , 6]])->WhereIn('status' ,['CA' ,'P'])->whereDate('booking_date' , $request->selected_date);
+											$query->orWhere([['users_id' , '=' , $request->user_id],['workshop_user_id' ,'=' ,(int)$request->workshop_id] ,['type' , '=' , 6]])->WhereIn('status' ,['CA' ,'P'])->whereDate('booking_date' , $request->selected_date);
 										}
 									 	$booked_list =	$query->get();
 										$new_booked_arr = $booked_slot = [];
@@ -899,6 +899,7 @@ public function sos_workshop_list_for_emergency(Request $request){
 						$workshop->workshop_gallery = \App\Gallery::get_all_images($request->workshop_id);
                         /*End*/
 						$time_slot = sHelper::workshop_time_slot($request->selected_date , $request->workshop_id);
+						$new_package_list_2 =[];
 						if($time_slot->count() > 0){
 							/*Manage Time slot manage*/
 							$new_new_slot = $booked_package_id_arr = [];
@@ -933,7 +934,7 @@ public function sos_workshop_list_for_emergency(Request $request){
 								$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' ,(int)$request->workshop_id] , ['services_id' ,'=' , $request->service_id] ,['type' ,'=' , 6] ,['status' ,'=' , 'C']]);
 								$query->whereDate('booking_date', $request->selected_date);
                                 if(!empty($request->user_id)){
-                                    $query->orWhere([['users_id' , '=' , $request->user_id],['type' , '=' , 6]])->whereIn('status',['CA' ,'P'])->wheredate('booking_date' , $request->selected_date);
+                                    $query->orWhere([['users_id' , '=' , $request->user_id], ['workshop_user_id' ,'=' ,(int)$request->workshop_id],['type' , '=' , 6]])->whereIn('status',['CA' ,'P'])->wheredate('booking_date' , $request->selected_date);
                                 }
 									        $booked_list =	$query->get();
 											if ($booked_list->count() > 0) {

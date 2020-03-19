@@ -287,8 +287,8 @@ class CarRevisionController extends Controller {
                                 $query = \App\ServiceBooking::where([['workshop_user_id' , '=', (int)$users_id],['status' ,'=' ,'C'] 
                                 ,['services_id' ,'=' , $service_id] ,['type','=', 3]]); 
                                 $query->whereDate('booking_date', $selected_date);
-                                if(!empty($user_id)){
-                                    $query->orWhere([['users_id' , '=' , $user_id] ,['status' ,'=', 'P'], ['status' ,'=' ,'CA'] ,['type' , '=' , 3]])->where('booking_date' ,'=' , $selected_date);
+                                if($user_id != 0){
+                                    $query->orWhere([['users_id' , '=' , $user_id],['workshop_user_id' ,'=' ,(int)$users_id],['type' , '=' , 3]])->whereIn('status' ,['P' ,'CA'])->whereDate('booking_date' , $selected_date);
                                 }
                                 $booked_list = $query->get();
                                 if($booked_list->count() < $max_appointment){

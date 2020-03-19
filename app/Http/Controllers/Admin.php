@@ -290,13 +290,26 @@ class Admin extends Controller{
 				$data['order_deatil'] = \App\Products_order::get_order_detail($p1);
 			     //echo "<pre>";
 			    if($data['order_deatil'] != NULL){
-			        $data['shipping_address_details'] = \App\Address::get_address_details($data['order_deatil']->shipping_address_id);     
+					$data['seller_info'] = DB::table('business_details')->where([['users_id' ,'=' ,$data['order_deatil']->seller_id]])->first();
+					$data['user_detail'] = DB::table('user_details')->where([['id' , '=' , $data['order_deatil']->user_details_id]])->first();
+					$data['payments_address_details'] = \App\Address::get_address_details($data['order_deatil']->shipping_address_id);
+			         
 			        //echo "<pre>";
 			        //print_r($data['shipping_address_details']);exit;
 			        $data['company_name'] = sHelper::get_seller_owner($data['order_deatil']->seller_id);
 					$data['order'] = \App\Products_order_description::get_product_description($p1);
-					$data['vat_price'] = sHelper::calculate_vat_price($data['order_deatil']->total_price);
-					$data['pfu_price'] = sHelper::calculate_pfu_price($data['order']->products_orders_id);
+					$data['service_details'] = \App\ServiceBooking::find($data['order']->service_booking_id);
+					$data['service_name'] = orderHelper::find_service_name($data['service_details']);
+					$data['shipping_address_details'] = \App\Address::get_address_details($data['service_details']->workshop_user_id);   
+					$data['sub_total'] = ($data['service_details']->price + (!empty($data['order']) ? $data['order']->price : 0));
+					$data['discount'] = ($data['service_details']->discount + (!empty($data['order']) ? $data['order']->discount : 0));
+					$data['service_vat'] = ($data['service_details']->service_vat + (!empty($data['order']) ? $data['order']->vat : 0));
+					//$data['service_vat'] = $data['order_deatil']->total_vat;
+					//$data['pfu_price'] = sHelper::calculate_pfu_price($data['order_deatil']->id);
+					$data['pfu_price'] =  (!empty($data['order']) ? $data['order']->pfu_tax : 0);
+
+					$data['total_price'] = (($data['sub_total'] + $data['service_vat']) - $data['discount']) + $data['pfu_price'];
+					//$data['pfu_price'] = sHelper::calculate_pfu_price($data['order']->products_orders_id);
 			    }
 			 }
 		}

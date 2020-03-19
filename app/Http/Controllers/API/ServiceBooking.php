@@ -141,7 +141,7 @@
 										$after_discount_price = ($service_vat + $request->price)- $discount_price;									
 										$booking_result = \App\ServiceBooking::add_assemble_service_booking($request , $get_package_details,$request->main_category_id ,$discount_price,$special_id, $service_vat , $after_discount_price);
 										/*manage order id*/
-										$order_manage = \App\Products_order::save_order($request , $request->discount , $request->product_total_price , 1,$after_discount_price);
+										//$order_manage = \App\Products_order::save_order($request , $request->discount , $request->product_total_price , 1,$after_discount_price);
 										/*save products response*/
 										$product_discount = 0;
 										/*calculate tyre total price*/
@@ -167,7 +167,7 @@
 										'for_assemble_service' =>1,
 										'service_booking_id'=>$booking_result->id,
 										]);
-										$user_last_order = \App\Products_order::save_order($request , $product_discount , $request->product_total_price , NULL , $after_discount_product_price);				  
+										//$user_last_order = \App\Products_order::save_order($request , $product_discount , $request->product_total_price , NULL , $after_discount_product_price);				  
 									if($booking_result){
 										return sHelper::get_respFormat(1 , "Booking successfully !!! " , $booking_result ,null ); 
 									} else{
@@ -320,7 +320,7 @@
 									
 									$booking_result = \App\ServiceBooking::add_car_revision_service_booking($request , 
 									$get_package_details , $special_id ,$discount_price ,$service_vat ,$after_discount_price);
-									$order_manage = \App\Products_order::save_order($request ,$discount_price,$request->price, null,$after_discount_price);
+									//$order_manage = \App\Products_order::save_order($request ,$discount_price,$request->price, null,$after_discount_price);
 						
 									if($booking_result){
 										return sHelper::get_respFormat(1 , "Booking successfully !!! " , $booking_result ,null ); 

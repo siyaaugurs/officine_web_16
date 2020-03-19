@@ -27,6 +27,7 @@ class CategoryController extends Controller {
 						 $find_all_workshop=NULL; 
 					}
 				 	if($workshop_user_details != NULL){
+						
 					 	$dayOfWeek = date("l", strtotime($selected_date));
 					 	$get_days_value = \DB::table('common_weekly_days')->where('name', '=', trim($dayOfWeek))->first();
 					   if($get_days_value != null) {
@@ -34,10 +35,12 @@ class CategoryController extends Controller {
 						  if($workshop_service_days != NULL){
 							 	$workshop_days_timing = \App\Workshop_user_day_timing::get_packages($workshop_service_days->id);
 							  if($workshop_days_timing->count() > 0){
+								  
 								  	$workshop_details = \App\User::get_workshop_details($workshop_id);
 								  if($workshop_details != NULL){
 									  /*Get price and average time code script start*/
 									    $product_details = \App\ProductsNew::find_product_details($product_id);
+										
 										if($product_details != NULL){
 										  if(!empty($product_details->assemble_kromeda_time)){
 											  $average_time = $product_details->assemble_kromeda_time;
@@ -46,10 +49,15 @@ class CategoryController extends Controller {
 											} 
 										  if(empty($average_time)){ $average_time = 1; } 
 										  	$total_average_time = $average_time + 0.33;	
+											 
 										  	$products_groups_details = \App\Products_group::where([['deleted_at' , '=' , NULL] , ['status' , '=' , 'A'] , ['id','=' ,$product_details->products_groups_id]])->first();
+										  
 										  if($products_groups_details != NULL){
+												//print_r($products_groups_details); die;
 												$blongs_to_in_assemble_services = apiHelper::check_n2_belongs_in_spare($products_groups_details);
+												// print_r('7'); die;	
 												if($blongs_to_in_assemble_services != NULL){
+													
 													$workshop_service_details = apiHelper::get_assemble_workshop_details($workshop_details , $blongs_to_in_assemble_services->main_category_id);
 													//$service_price_and_appointment =  \App\WorkshopAssembleServices::find_workshop_price($workshop_id , $blongs_to_in_assemble_services->main_category_id);
 												    if($workshop_service_details != FALSE){
@@ -128,14 +136,15 @@ class CategoryController extends Controller {
 																			
 																	}
 																}
-																/*End*/		
+																/*End*/	
+														
 																$new_generate_applicable_slot = sHelper::get_time_slot($not_applicable_hour_slot , $opening_slot);
 																/*manage booking slot*/
 																$query = \App\ServiceBooking::where([['workshop_user_id','=',(int) $workshop_id] ,['type' , '=' , 2] ,['status' ,'=' , 'C'],
 																['services_id' , '=' ,$workshop_details->main_category_id]]);
 																$query->whereDate('booking_date' , $selected_date);
-																if(!empty($user_id)){
-																	$query->orWhere([['users_id','=' ,$user_id] ,['status' ,'=' , 'P'] ,['status' ,'=' , 'CA'] ,['type' ,'=' ,2]])->whereDate('booking_date' , $selected_date);
+																if($user_id != 0){
+																	$query->orWhere([['users_id','=' ,$user_id],['workshop_user_id' ,'=' , (int)$workshop_id],['type' ,'=' ,2]])->whereIn('status',['CA','P'])->whereDate('booking_date' , $selected_date);
 																}	
 																$booked_list = $query->get();	
 																$book_max_appointment = $booked_list->count();					
@@ -466,6 +475,7 @@ public function get_workshop_service_package($workshop_user_id, $category_servic
 							}
 						}
 						//echo "<pre>";
+						//echo "<pre>";
 						//print_r($get_service_details);exit;
 						$get_service_details->workshop_gallery = \App\Gallery::get_all_images($workshop_user_id);
 						$images = \App\Gallery::get_category_image($category_service_id);
@@ -566,9 +576,10 @@ public function get_workshop_service_package($workshop_user_id, $category_servic
 											 ['status' , '=' , 'C'],
 											 ['services_id' , '=' ,$category_service_id]]);
 											 $query->whereDate('booking_date' ,$selected_date);
-											 if(!empty($user_id))
+											 if($user_id != 0)
 											 {
-												$query->orWhere([['users_id','=', $user_id] ,['status' ,'=' , 'P'] ,['status' ,'=' ,'CA'],['type' ,'=' , 1]])->whereDate('booking_date' ,$selected_date);	
+												$query->orWhere([['users_id','=', $user_id],['workshop_user_id' ,'=' , (int)$workshop_user_id],['type' ,'=' , 1]])->whereIn('status' ,['P' ,'CA'])
+												->whereDate('booking_date' ,$selected_date);	
 											 }
 											 $booked_list = $query->get();
 											$book_max_appointment = $booked_list->count();					

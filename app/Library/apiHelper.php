@@ -318,12 +318,12 @@ public static function get_rim_workmanship_for_rim_type($tyre_type){
          return DB::table('spare_category_items as a')
                         ->join('main_category as m' , 'm.id' , '=' , 'a.main_category_id') 
                         ->select('a.*' , 'm.description')
-                        ->where([['products_groups_group_id' , '=' , $sub_group_details->group_id]])->first();    
+                        ->where([['a.products_groups_group_id' , '=' , $sub_group_details->group_id]])->first();    
        }
        return DB::table('spare_category_items')
                   ->join('main_category as m' , 'm.id' , '=' , 'a.main_category_id') 
                   ->select('a.*' , 'm.description') 
-                  ->where([['products_groups_id' , '=' , $sub_group_details->id]])->first(); 
+                  ->where([['a.products_groups_id' , '=' , $sub_group_details->id]])->first(); 
     }
 
     public static function get_assemble_workshop_details($workshop , $main_category_id){
@@ -342,8 +342,6 @@ public static function get_rim_workmanship_for_rim_type($tyre_type){
 
         }
     }
-  
-  
   /*Get Rims from tyre24 script start*/
    public static function get_rims($maker_details){
       $request_param = ['ns1:rimManufacturer'=>$maker_details->Marca];

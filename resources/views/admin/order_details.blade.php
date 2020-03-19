@@ -92,6 +92,16 @@
                                 <td><button data-toggle="tooltip" title="Shipping Method" class="btn btn-info btn-xs"><i class="fa fa-euro fa-fw"></i></button></td>
                                 <td>&euro; {{ $order_deatil->total_price }}</td>
                             </tr>
+                             <tr>
+                                <td><button data-toggle="tooltip" title="Order Status" class="btn btn-info btn-xs"><i class="fa fa-euro fa-fw"></i></button></td>
+                                <td>&euro;
+                                 @if($order_deatil->status == 'P')
+                                    Pending
+                                 @else
+                                    Confirm
+                                 @endif
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -132,76 +142,140 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <td style="width: 50%;" class="text-left">Payment Address</td>
-                        <td style="width: 50%;" class="text-left">Shipping Address</td>
+                        <td class="text-left text-width">Payment Address</td>
+                       @if($order != NULL)
+                        @if($order->for_assemble_service == 1)
+                        <td class="text-left text-width">Shipping Address</td>
+                        @endif
+                          @endif
+
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="text-left">Bharathi<br />R<br />west saidapet,chennai<br />chennai 600015<br />Tamil Nadu<br />India</td>
-                        <td class="text-left">@if(!empty($shipping_address_details->address_1)){!! $shipping_address_details->address_1."<br />" !!}@endif 
-                          @if(!empty($shipping_address_details->address_2)) {!! $shipping_address_details->address_2."<br />" !!} @endif   
-                          @if(!empty($shipping_address_details->address_3)){!! $shipping_address_details->address_3."<br />" !!}@endif 
-                          @if(!empty($shipping_address_details->landmark)){!! $shipping_address_details->landmark."<br />" !!} @endif 
-                          @if(!empty($shipping_address_details->zip_code)){!! $shipping_address_details->zip_code."<br />" !!} @endif
+                    
+                        <td class="text-left">
+                         @if(!empty($payments_address_details->address_1)){!! $payments_address_details->address_1."<br />" !!}@endif 
+                         @if(!empty($payments_address_details->address_2)) {!! $payments_address_details->address_2."<br />" !!} @endif   
+                         @if(!empty($payments_address_details->address_3)){!! $payments_address_details->address_3."<br />" !!}@endif 
+                         @if(!empty($payments_address_details->landmark)){!! $payments_address_details->landmark."<br />" !!} @endif 
+                         @if(!empty($payments_address_details->zip_code)){!! $payments_address_details->zip_code."<br />" !!} @endif</td> 
+                       @if($order != NULL)
+                       @if($order->for_assemble_service == 1)
+                        <td class="text-left">
+                          @if(!empty($shipping_address_details->address_1)){!! $shipping_address_details->address_1."<br />" !!}@endif 
+                         @if(!empty($shipping_address_details->address_2)) {!! $shipping_address_details->address_2."<br />" !!} @endif   
+                         @if(!empty($shipping_address_details->address_3)){!! $shipping_address_details->address_3."<br />" !!}@endif 
+                         @if(!empty($shipping_address_details->landmark)){!! $shipping_address_details->landmark."<br />" !!} @endif 
+                         @if(!empty($shipping_address_details->zip_code)){!! $shipping_address_details->zip_code."<br />" !!} @endif</td> 
                         </td>
+                        @endif
+                         @endif
                     </tr>
                 </tbody>
+            </table>
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+            <td>Business Name</td>
+            <td>Registered Office</td>
+            <td>About Business</td>
+            </tr>
+            </thead>
+             @if(!empty($seller_info))
+            <tr>
+            <td>{{$seller_info->business_name}}</td>
+            <td>{{$seller_info->registered_office}}</td>
+            <td>{{$seller_info->about_business}}</td>
+            </tr>
+            @else
+             <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            </tr>
+            @endif
             </table>
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th class="text-left">S No.</th>
-                        <th class="text-left">Product Order Id</th>
-                        <th class="text-left">Product Name</th>
-                        <th class="text-left">Product Description</th>
-                        <th class="text-left">Product Coupons</th>
-                        <th class="text-left">Unit Price</th>
-                        <th class="text-left">Discount</th>
-                        <th class="text-left">Total</th>
+                        <td>Service Name</td>
+                        <td>Price</td>
+                        <td>Discount Price</td>
+                        <td>VAT</td>
+                        <td>Total Price</td>
                     </tr>
                 </thead>
+                
+                <tr>
+                    <td>{{ $service_name }}</td>
+                    <td>&euro;&nbsp;{{ $service_details->price }}</td>
+                    <td>&euro;&nbsp;{{ $service_details->discount }}</td>
+                    <td>&euro;&nbsp;{{ $service_details->service_vat }}</td>
+                    <td>&euro;&nbsp;{{ $service_details->after_discount_price }}</td>
+                </tr>
+            </table>
+			 <table class="table table-bordered">
+                @if(!empty($order))
+                    <thead>
+                        <tr>
+                            <td class="text-left">Product Order Id</td>
+                            <td class="text-left">Product Name</td>
+                            <td class="text-left">Product Description</td>
+                            <td class="text-left">Product Coupons</td>
+                            <td colspan ="4" class="text-left">Unit Price</td>
+                            <td  colspan ="4"  class="text-left">Discount</td>
+                            <td  class="text-left">Total</td>
+                        </tr>
+                    </thead>
+                @else
+                @endif
                 <tbody>
-                    @forelse ($order as $orders)
+                    @if(!empty($order))
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $orders->products_orders_id }}</td>
-                            <td>{{ $orders->product_name ?? "N/A" }}</td>
-                            <td>{{ $orders->product_description ?? "N/A" }}</td>
-                            <td>{{ $orders->coupons_id ?? "N/A" }}</td>
-                            <td>&euro; {{ $orders->price ?? "N/A" }}</td>
-                            <td>{{ $orders->discount ?? "N/A" }}</td>
-                            <td>&euro;{{ $orders->total_price ?? "N/A" }}</td>
+                            <td>{{ $order->products_orders_id }}</td>
+                            <td>{{ $order->product_name ?? "N/A" }}</td>
+                            <td>{{ $order->product_description ?? "N/A" }}</td>
+                            <td>{{ $order->coupons_id ?? "N/A" }}</td>
+                            <td colspan ="4">&euro; {{ $order->price ?? "N/A" }}</td>
+                            <td  colspan ="4">{{ $order->discount ?? "N/A" }}</td>
+                            <td >&euro;{{ $order->total_price ?? "N/A" }}</td>
                         </tr>
-                    @empty
-                        <tr>
-                        <td colspan="5">Data Not Available</td>
-                        </tr>
-                    @endforelse
+                    @else
+                    @endif
                     <tr>
-                        <td colspan="7" class="text-right">Sub-Total</td>
-                        <td class="text-right">&euro;{{ $order_deatil->total_price }}</td>
+                    @if($service_details !=  NULL)
+                    <td colspan ="3" class="text-right text-size">Appointment Time </td>
+                    <td colspan ="3">{{$service_details->start_time}} -{{$service_details->end_time}}  </td>
+                    @endif
+                     <td colspan="6" class="text-right text-size">Sub-Total</td>
+                        <td class="text-right">&euro;&nbsp;{{ $sub_total }}</td>
                     </tr>
                     <tr>
-                        <td colspan="7" class="text-right">Total Discount</td>
-                        <td class="text-right">&euro;{{ $order_deatil->total_discount }}</td>
-                    </tr>
-                        @php
-                            $sub_total = $order_deatil->total_price;
-                            $discount = $order_deatil->total_discount;
-                            $total = ($sub_total - $discount);
-                        @endphp
-                    <tr>
-                        <td colspan="7" class="text-right">Total</td>
-                        <td class="text-right">&euro;{{ $total }}</td>
-                    </tr>
-                     <tr>
-                        <td colspan="7" class="text-right">PFU</td>
-                        <td class="text-right">&euro;{{ $pfu_price }}</td>
+                        <td colspan="3" class="text-right text-size">Car Version</td>
+                        <td colspan ="3 class="text-right">{{ $user_detail->carVersion }}</td>
+                         <td colspan="6" class="text-right text-size">Total Discount</td>
+                        <td class="text-right">&euro;&nbsp;{{ $discount }}</td>
                     </tr>
                     <tr>
-                        <td colspan="7" class="text-right">VAT</td>
-                        <td class="text-right">&euro;{{ $vat_price }}</td>
+                        <td colspan="3" class="text-right text-size">License Plate</td>
+                        <td colspan ="3 class="text-right">{{ $user_detail->number_plate }}</td>
+                        <td colspan="6" class="text-right text-size">Total VAT</td>
+                        <td class="text-right">&euro;&nbsp;{{ $service_vat }}</td>
+                    </tr>
+                    @if($service_details->type == 4)
+                    <tr>
+                        <td colspan="3" class="text-right text-size"></td>
+                        <td  colspan="3" class="text-right"></td>
+                         <td colspan="6" class="text-right text-size">PFU</td>
+                        <td class="text-right">&euro;&nbsp;{{ $pfu_price }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                     <td colspan="3" class="text-right text-size"></td>
+                        <td  colspan="3" class="text-right"></td>
+                        <td colspan="6" class="text-right text-size">Total</td>
+                        <td  colspan="6" class="text-right">&euro;&nbsp;{{ $total_price }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -259,8 +333,8 @@ $(document).ready(function(){
 			success: function(data){
 			   btn.html('Generate Xml');	
 			   if(data == 200){
-				  copied_url =  base_url+"public/"+order_id+".xml"; 	  
-				   //$(".generate_xml").append( $('<input>' , { value:copied_url , class:'form-control'}));
+                  copied_url =  base_url+"/order_invoice/"+order_id+".xml"; 
+                   //$(".generate_xml").append( $('<input>' , { value:copied_url , class:'form-control'}));
 				  $("#copied_url").val(copied_url).show(); 
 				 }
 			   //console.log();

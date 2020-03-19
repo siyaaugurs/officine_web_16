@@ -149,7 +149,6 @@ class UserDetail extends Controller{
 			   /*End*/
 			   $get_busy_workshop = \App\ServiceBooking::get_busy_hour($request , $get_package_details);
                if($get_busy_workshop == NUll){
-                   
 					$discount_price = 0;
 					$special_id = 0;
                      if(!empty($special_condition_value)){
@@ -183,7 +182,7 @@ class UserDetail extends Controller{
                     $after_discount_price = ($service_vat + $request->price) - $discount_price;
                     $booking_result = \App\ServiceBooking::add_booking($request , $get_package_details,$discount_price,$special_id,$service_vat , $after_discount_price);
                     //order id data
-                    $order_manage = \App\Products_order::save_order($request , $discount_price , $request->price , NULL , $after_discount_price);
+                    //$order_manage = \App\Products_order::save_order($request , $discount_price , $request->price , NULL , $after_discount_price);
                     if(!empty($request->servicequotes_id)){
                         /*soft update Days */
                             $update_response = \App\Servicequotes::where([['id' , '=' , $request->servicequotes_id]])->update(['workshop_id'=>$request->workshop_user_id]);

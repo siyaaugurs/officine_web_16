@@ -25,7 +25,7 @@ class Products_order_description extends Model{
 						->leftjoin('users as u' , 'a.users_id' , '=' , 'u.id')
 						->where('a.products_orders_id' , '=' , $order_id)
 						->select('a.*' , 'u.f_name')
-						->get(); 
+						->first(); 
         }
     }
     public static function get_service_description($booking_id) {
@@ -58,7 +58,7 @@ class Products_order_description extends Model{
      public static function spare_product_description_for_assemble($order_id) {
         if(!empty($order_id)) {
             return DB::table('products_order_descriptions as a') 
-                        ->where([['a.products_orders_id' , '=' , $order_id], ['for_order_type', '=', 1] , ['for_assemble_service' , '=' ,1], ['deleted_at' , '=' , NULL]])
+                        ->where([['a.service_booking_id' , '=' , $order_id], ['for_order_type', '=', 1] , ['for_assemble_service' , '=' ,1], ['deleted_at' , '=' , NULL]])
                         ->select('a.*')
                         ->first(); 
         }
@@ -66,7 +66,7 @@ class Products_order_description extends Model{
     public static function tyre_product_description_for_assemble($order_id) {
         if(!empty($order_id)) {
             return DB::table('products_order_descriptions as a') 
-                        ->where([['a.products_orders_id' , '=' , $order_id], ['for_order_type', '=', 2] ,['for_assemble_service' , '=' ,1], ['deleted_at' , '=' , NULL]])
+                        ->where([['a.service_booking_id' , '=' , $order_id], ['for_order_type', '=', 2] ,['for_assemble_service' , '=' ,1], ['deleted_at' , '=' , NULL]])
                         ->select('a.*')
                         ->first(); 
         }

@@ -539,7 +539,7 @@ class CarMaintenanceController extends Controller {
 						$service_vat = orderHelper::calculate_vat_price($service_specification->price);
 						$after_discount_price = ( $service_vat +  $service_specification->price ) - $discount_price;
 						$booking_result = \App\ServiceBooking::add_booking_for_car_maintenance($request , $get_package_details , $service_specification ,$discount_price ,$special_id ,$service_vat ,$after_discount_price);	 
-						$order_manage = \App\Products_order::save_order($request ,$discount_price,$service_specification->price, null,$after_discount_price);
+						//$order_manage = \App\Products_order::save_order($request ,$discount_price,$service_specification->price, null,$after_discount_price);
 						//save service part
 						$parts_arr = $service_specification->parts;
 						if(!empty($parts_arr)){
@@ -726,7 +726,7 @@ class CarMaintenanceController extends Controller {
 											$book_max_appointment = $booked_list->count();					
 											$query = \App\ServiceBooking::where([['workshop_user_id' ,'=' , $workshop_id] ,['type' ,'=' ,5] ,['services_id' ,'=',$service_id] ,['status' ,'=' ,'C']])->whereDate('booking_date' ,$selected_date);
 											if($user_id != 0){
-												$query->orWhere([['users_id' ,'=' , $user_id] ,['type' ,'=' ,5]])->whereIn('status' , ['CA' ,'P'])->whereDate('booking_date' ,$selected_date);
+												$query->orWhere([['users_id' ,'=' , $user_id],['workshop_user_id' ,'=' , $workshop_id] ,['type' ,'=' ,5]])->whereIn('status' , ['CA' ,'P'])->whereDate('booking_date' ,$selected_date);
 											}
 											if($booked_list->count() < $max_appointment){
 											if ($booked_list->count() > 0) {

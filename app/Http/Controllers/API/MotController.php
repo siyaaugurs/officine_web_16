@@ -204,7 +204,7 @@ public function get_workshop_for_mot_service(Request $request){
 									if(!empty($request->user_id)){
 										$user_wishlist_status = \App\User_wish_list::get_user_wish_list_for_workshop($workshop->users_id , $request->user_id);
 										if($user_wishlist_status == 1){
-											$workshop_users->wish_list = 1;
+											$workshop->wish_list = 1;
 										}	
 									}
 									$new_workshop_list[] = $workshop;
@@ -500,7 +500,6 @@ public function get_workshop_for_mot_service(Request $request){
 				}
 			}
 			
-
 	//get MOT service pacakges	
 	public function mot_services_package(Request $request){
 		$validator = \Validator::make($request->all(), ['selected_date'=>'required' , 'workshop_id'=>'required' , 'service_id'=>'required' , 'selected_car_id'=>'required']);
@@ -560,10 +559,10 @@ public function get_workshop_for_mot_service(Request $request){
 								   
 									$query = \App\ServiceBooking::where([['workshop_user_id','=',(int) $request->workshop_id] ,
 																		 ['type' , '=' , 4],['services_id' , '=' ,$request->service_id] , ['status' , '=' , 'C']]);
-																		 $query->whereDate('booking_date' , $request->selected_date);
-																		 if(!empty($request->user_id)){
-																			$query->orWhere([['users_id' , '=' ,$request->user_id] , ['status' , '=' ,'P'],['status' ,'=' ,'CA'] , ['type' , '=' , 8]])->whereDate('booking_date' , $request->selected_date);
-																		  } 	
+										$query->whereDate('booking_date' , $request->selected_date);
+										if(!empty($request->user_id)){
+											$query->orWhere([['users_id' , '=' ,$request->user_id], ['type' , '=' , 8]])->whereIn('status' ,['CA' ,'P'])->whereDate('booking_date' , $request->selected_date);
+										} 	
 									 $booked_list = $query->get();  
 									 if ($booked_list->count() > 0) {
 										 foreach($booked_list as $booked) {

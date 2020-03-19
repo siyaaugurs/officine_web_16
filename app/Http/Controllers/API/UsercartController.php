@@ -9,10 +9,12 @@ use App\User;
 use App\Gallery;
 use App\Address;
 use apiHelper;
-use app\library\orderHelper;
+use App\Library\orderHelper;
 use Illuminate\Support\Facades\Auth;
 use DB; 
 use Hash;
+use App\Products_order;
+use PDF;
 
 class UsercartController extends Controller{
 	
@@ -217,7 +219,7 @@ class UsercartController extends Controller{
 	}
 	public function check_service_avilability($services) {
 		$status = 1;
-		$check_package_timing = DB::table('service_bookings')->where([['workshop_user_day_timings_id', '=', $services->workshop_user_day_timings_id], ['start_time', '=', $services->start_time], ['end_time', '=', $services->end_time], ['status', '=', 'C']])->first();
+		$check_package_timing = DB::table('service_bookings')->where([['workshop_user_day_timings_id', '=', $services->workshop_user_day_timings_id], ['start_time', '=', $services->start_time], ['end_time', '=', $services->end_time], ['status', '=', 'C'], ['product_id', '=', $services->product_id]])->first();
 		if(!empty($check_package_timing)) {
 			$status = 0;
 		}
@@ -245,7 +247,7 @@ class UsercartController extends Controller{
 		if($services->type == 4) {
 			$service_details = \App\WorkshopTyre24Details::where([['workshop_user_id' , '=' , $services->workshop_user_id] , ['category_id' , '=' , $services->services_id]])->first();
 
-			$get_all_bookings = DB::table('service_bookings')->where([['type', '=', $services->type],['workshop_user_id', '=', $services->workshop_user_id], ['services_id', '=', $services->services_id],['booking_date', '=', $services->booking_date]])->get();
+			$get_all_bookings = DB::table('service_bookings')->where([['type', '=', $services->type],['workshop_user_id', '=', $services->workshop_user_id], ['services_id', '=', $services->services_id],['booking_date', '=', $services->booking_date], ['product_id', '=', $services->product_id]])->get();
 			if($service_details != NULL) {
 				if($service_details->max_appointment < count($get_all_bookings)) {
 					$status = 0;
@@ -379,7 +381,7 @@ class UsercartController extends Controller{
 
 								if($service_product->type == 2){	
 									//$service_product->assembly_service_product_description->max_product_quantity = null;
-									$service_product->assembly_service_product_description = \App\Products_order_description::spare_product_description_for_assemble($get_cart_item->id);
+									$service_product->assembly_service_product_description = \App\Products_order_description::spare_product_description_for_assemble($service_product->id);
 									if(!empty($service_product->assembly_service_product_description )){
 										$service_product->assembly_service_product_description->final_order_price = (string) $service_product->assembly_service_product_description->final_order_price;
 										$service_product->assembly_service_product_description->pfu_tax = (string) $service_product->assembly_service_product_description->pfu_tax;
@@ -393,7 +395,7 @@ class UsercartController extends Controller{
 								}
 								if($service_product->type == 4){
 									//$service_product->assembly_service_product_description->max_product_quantity = null;
-									$service_product->assembly_service_product_description = \App\Products_order_description::tyre_product_description_for_assemble($get_cart_item->id);
+									$service_product->assembly_service_product_description = \App\Products_order_description::tyre_product_description_for_assemble($service_product->id);
 									if(!empty($service_product->assembly_service_product_description)){
 										$service_product->assembly_service_product_description->final_order_price = (string) $service_product->assembly_service_product_description->final_order_price;
 										$service_product->assembly_service_product_description->pfu_tax = (string) $service_product->assembly_service_product_description->pfu_tax;
@@ -432,8 +434,8 @@ class UsercartController extends Controller{
 						$orders->delete();
 					}
 				}
+				$order_details->delete();
 			}
-			$order_details->delete();
 			return sHelper::get_respFormat(1, "Cart Items Removed Successfully", null, null);
 		} else {
 			return sHelper::get_respFormat(0,"Unauthenticate , please login first.",null,null);
@@ -453,7 +455,11 @@ class UsercartController extends Controller{
 				$request->order_id = $order_manage->id;
 			}
 			$product_info = \App\ProductsNew::where([['id', '=', $request->product_id]])->first();
-			$product_image = sHelper::get_product_image($request->product_id);
+			if($product_info != NULL) {
+				$product_detail = kromedaDataHelper::arrange_spare_product($product_info);
+			}
+
+			$product_image = $product_detail->image; 
 			$product_vat = orderHelper::calculate_vat_price($request->total_price); 
 			// $after_discount_price = (($product_vat + $request->price) * $request->product_quantity) - $request->discount;
 			$after_discount_price = (($product_vat + $request->total_price) - $request->discount);
@@ -462,8 +468,9 @@ class UsercartController extends Controller{
 			} else {
 				$single_product_price = ($request->price + $product_vat);
 			}
-			$insert_data = \App\Products_order_description::updateOrCreate(['products_id' => $request->product_id, 'users_id'=> Auth::user()->id, 'products_orders_id' => $order_manage->id, 'for_order_type' => $request->for_order_type, 'for_assemble_service' => NULL],['products_orders_id'=> $request->order_id,
+			$insert_data = \App\Products_order_description::updateOrCreate(['products_id' => $request->product_id, 'users_id'=> Auth::user()->id, 'products_orders_id' => $order_manage->id, 'for_order_type' => $request->for_order_type, 'for_assemble_service' => NULL, 'deleted_at' => NULL],['products_orders_id'=> $request->order_id,
 				'product_quantity'=> $request->product_quantity,
+				'seller_id'=> $request->seller_id,
 				'vat' =>$product_vat,
 				'final_order_price' =>$after_discount_price,
 				'pfu_tax'=>$request->pfu_tax,
@@ -489,6 +496,46 @@ class UsercartController extends Controller{
 		} else {
 			return sHelper::get_respFormat(0,"Unauthenticate , please login first.",null,null);
 		}	
+	}
+	//generate xml
+	public function generate_invoice_xml(Request $request) {
+		if(Auth::user()->id){
+			$validator = \Validator::make($request->all(), [
+				'order_id' => 'required'
+			]);
+			if($validator->fails()){
+				return sHelper::get_respFormat(0 ,$validator->errors()->first() , NULL, NULL); 
+			}
+			$copied_url =  url("/public/app_order_invoice/{$request->order_id}.pdf");
+			if(file_exists($copied_url)) {
+				return sHelper::get_respFormat($copied_url, null, null , null);
+			} else {
+				$product_order_obj = new Products_order;
+				$address_obj = new Address;
+				$payment_mode_status = $product_order_obj->payment_mode_status; 
+				$address_status = $address_obj->address_type; 
+				$generate_response = orderHelper::generate_order_xml($request->order_id);
+				echo "<pre>";
+				print_r($generate_response);exit;
+				$data = [
+					'generate_response' => $generate_response,
+					'payment_mode_status' => $payment_mode_status,
+					'address_status' => $address_status,
+				];
+				$pdf = PDF::loadView('admin/invoice', $data);  
+				$file_name = $generate_response->id;
+				$content = $pdf->output();
+				$myFile = public_path('app_order_invoice/'.$file_name.".pdf");
+				if(file_put_contents($myFile, $content)){
+					$url =  url("/public/app_order_invoice/{$request->order_id}.pdf");
+					return sHelper::get_respFormat($url, null, null , null);
+				} else {
+					return sHelper::get_respFormat(0 , "Something went Wrong. Please Try Again. ", null , null);
+				}
+			}
+		} else {
+			return sHelper::get_respFormat(0 , "Unauthenticate , please login first.", null , null);
+		}
 	}
 	
 	//click checkout
@@ -530,9 +577,9 @@ class UsercartController extends Controller{
 						}
 					}
 					$get_book_orders = DB::table('service_bookings')->where('product_order_id',$check_order->id)->get();
-					if($get_book_orders->count() >0){
+					if($get_book_orders->count() > 0){
 						foreach($get_book_orders as $get_book_order){
-							$check_package_timing = DB::table('service_bookings')->where([['workshop_user_day_timings_id', '=', $get_book_order->workshop_user_day_timings_id], ['start_time', '=', $get_book_order->start_time], ['end_time', '=', $get_book_order->end_time], ['status', '=', 'C']])->first();
+							$check_package_timing = DB::table('service_bookings')->where([['workshop_user_day_timings_id', '=', $get_book_order->workshop_user_day_timings_id], ['start_time', '=', $get_book_order->start_time], ['end_time', '=', $get_book_order->end_time], ['status', '=', 'C'], ['type', '=', $get_book_order->type], ['product_id', '=', $get_book_order->product_id]])->first();
 							$flag = 1;
 							if(!empty($check_package_timing)) {
 								$flag = 0;
@@ -555,25 +602,25 @@ class UsercartController extends Controller{
 	
 	public function update_product_quantity(Request $request){
 		if(Auth::user()->id){
-		$product_id = $request->product_id;
-		$get_product_info = \App\Products_order_description::where('id',$product_id)->first();
-		if($get_product_info != NULL){
-		if(!empty($get_product_info->price)){
-			$products_order = \App\Products_order::where('id', $get_product_info->products_orders_id)->first();
-			$old_total_price = $get_product_info->total_price;
-			$new_price_for_product_order = $request->total_price - $old_total_price;
-			$new_total_price = $products_order->total_price + $new_price_for_product_order;
-			$products_order->total_price = $new_total_price;
-			$products_order->save();
-		}
-		$update_product =\App\Products_order_description::update_product_quantity($request->all());
-		//add coupon dicount price in wallet
-		$description ='coupon discount';
-		$user_wallet = apiHelper::manage_registration_time_wallet(Auth::user(),$products_order->total_discount ,$description);
-			return sHelper::get_respFormat(1,"Update successfully!!!",null,null);
-		} else {
-			return sHelper::get_respFormat(0,"No product there!!!",null,null);
-		}
+			$product_id = $request->product_id;
+			$get_product_info = \App\Products_order_description::where('id',$product_id)->first();
+			if($get_product_info != NULL){
+				if(!empty($get_product_info->price)){
+					$products_order = \App\Products_order::where('id', $get_product_info->products_orders_id)->first();
+					$old_total_price = $get_product_info->total_price;
+					$new_price_for_product_order = $request->total_price - $old_total_price;
+					$new_total_price = $products_order->total_price + $new_price_for_product_order;
+					$products_order->total_price = $new_total_price;
+					$products_order->save();
+				}
+				$update_product =\App\Products_order_description::update_product_quantity($request->all());
+				//add coupon dicount price in wallet
+				$description ='coupon discount';
+				$user_wallet = apiHelper::manage_registration_time_wallet(Auth::user(),$products_order->total_discount ,$description);
+				return sHelper::get_respFormat(1,"Update successfully!!!",null,null);
+			} else {
+				return sHelper::get_respFormat(0,"No product there!!!",null,null);
+			}
 		} else {
 			return sHelper::get_respFormat(0,"Unauthenticate , please login first.",null,null);
 		}
@@ -584,12 +631,13 @@ class UsercartController extends Controller{
 			if($request->type == 1){
 				$products_order_description = \App\Products_order_description::where([['users_id','=' ,Auth::user()->id],['id','=',$request->book_id]])->first(); 
 				if($products_order_description['products_orders_id'] != NULL){
-					$products_order_description->deleted_at = now();
-					$products_order_description->save();
+					// $products_order_description->deleted_at = now();
+					// $products_order_description->save();
 					$products_order = \App\Products_order::where([['users_id','=' ,Auth::user()->id],['id','=',$products_order_description['products_orders_id']]])->first();
 					$products_order->no_of_products =  DB::raw('no_of_products - 1');
 					$products_order->total_price = $products_order->total_price - $request->total_price;
 					$products_order->save();
+					$products_order_description->delete();
 					return sHelper::get_respFormat(1,"Service delete successfully !!!",null , null);
 				}else{
 					return sHelper::get_respFormat(0,"No product item !!!",null , null);
@@ -598,29 +646,31 @@ class UsercartController extends Controller{
 				$find_product_order_id = \App\ServiceBooking::where([['users_id','=' ,Auth::user()->id],['id','=',$request->book_id]])->first();	
 				if($find_product_order_id != NULL){
 					$products_order_description = \App\Products_order_description::where([['users_id','=' ,Auth::user()->id],['products_orders_id','=',$find_product_order_id->product_order_id]])->first(); 
-				if($products_order_description != NULL){
-					$products_order_description->deleted_at = now();
-					$products_order_description->save();
-					$products_order = \App\Products_order::where([['users_id','=' ,Auth::user()->id],['id','=',$products_order_description->products_orders_id]])->first();
-					$products_order->no_of_products =  DB::raw('no_of_products - 1');
-					$products_order->total_price = $products_order->total_price - $request->total_price;
-					$products_order->save();
+					if($products_order_description != NULL){
+						// $products_order_description->deleted_at = now();
+						// $products_order_description->save();
+						$products_order = \App\Products_order::where([['users_id','=' ,Auth::user()->id],['id','=',$products_order_description->products_orders_id]])->first();
+						$products_order->no_of_products =  DB::raw('no_of_products - 1');
+						$products_order->total_price = $products_order->total_price - $request->total_price;
+						$products_order->save();
+						$products_order_description->delete();
+					} else {
+						$products_order = \App\Products_order::where([['users_id','=' ,Auth::user()->id],['id','=',$find_product_order_id->product_order_id]])->first();
+						$products_order->no_of_products =  DB::raw('no_of_products - 1');
+						$products_order->total_price = $products_order->total_price - $request->total_price;
+						$products_order->save();
+					}
+					// $find_product_order_id->deleted_at = now();
+					// $find_product_order_id->save();	
+					$find_product_order_id->delete();
+					return sHelper::get_respFormat(1,"Service delete successfully !!!",null , null);
 				} else {
-					$products_order = \App\Products_order::where([['users_id','=' ,Auth::user()->id],['id','=',$find_product_order_id->product_order_id]])->first();
-					$products_order->no_of_products =  DB::raw('no_of_products - 1');
-					$products_order->total_price = $products_order->total_price - $request->total_price;
-					$products_order->save();
+					return sHelper::get_respFormat(0,"No product item !!!",null , null);
 				}
-				$find_product_order_id->deleted_at = now();
-				$find_product_order_id->save();	
-				return sHelper::get_respFormat(1,"Service delete successfully !!!",null , null);
-			} else {
-				return sHelper::get_respFormat(0,"No product item !!!",null , null);
 			}
-			}
-			} else {
-				return sHelper::get_respFormat(0 , "Unauthenticate , please login first.", null , null);	
-			}
+		} else {
+			return sHelper::get_respFormat(0 , "Unauthenticate , please login first.", null , null);	
+		}
 	}
 
 	
@@ -662,10 +712,11 @@ class UsercartController extends Controller{
 							}
 							$service_product->assembly_service_product_description = null;
 							if($service_product->type == 2){
-								$service_product->assembly_service_product_description = \App\Products_order_description::spare_product_description_for_assemble($user_order->id); 	
+								$service_product->assembly_service_product_description = \App\Products_order_description::spare_product_description_for_assemble($service_product->id); 	
 							}
 							if($service_product->type == 4){
-								$service_product->assembly_service_product_description = \App\Products_order_description::tyre_product_description_for_assemble($user_order->id);
+								$service_product->assembly_service_product_description = \App\Products_order_description::tyre_product_description_for_assemble($service_product->id);
+							
 							}
 							$service_product->quantity = (int)$service_product->quantity;
 							$service_product->price = (string)$service_product->price;
@@ -700,6 +751,7 @@ class UsercartController extends Controller{
 						$get_order_detail->order_date = date('Y-m-d');
 						$get_order_detail->transaction_id = $request->transaction_id;
 						$get_order_detail->payment_mode = $request->payment_mode;
+						$get_order_detail->total_price = $request->amount;
 						$get_order_detail->status = 'C';
 						$get_order_detail->save();
 						$get_all_product = \App\Products_order_description::where([['products_orders_id', '=', $get_order_detail->id],['users_id','=',Auth::user()->id], ['status', '=', 'P']])->whereIn('for_order_type', [1])->get();
